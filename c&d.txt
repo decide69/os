@@ -1,0 +1,327 @@
+
+Practical 3
+Aim: Configuring IBGP and EBGP Sessions, Local Preference, and MED
+
+Router R1 (hostname ISP)
+ISP(config)# interface Loopback0
+ISP(config-if)# ip address 192.168.100.1 255.255.255.0
+ISP(config-if)# exit
+ISP(config)# interface Serial1/0
+ISP(config-if)# ip address 192.168.1.5 255.255.255.252
+ISP(config-if)# no shutdown
+ISP(config-if)# exit
+ISP(config)# interface Serial1/1
+ISP(config-if)# ip address 192.168.1.1 255.255.255.252
+ISP(config-if)# no shutdown
+ISP(config-if)# end
+
+
+Router R2 (hostname ANDHERI)
+ANDHERI (config)# interface Loopback0
+ANDHERI (config-if)# ip address 172.16.64.1 255.255.255.0
+ANDHERI (config-if)# exit
+ANDHERI (config)# interface Serial1/0
+ANDHERI (config-if)# ip address 192.168.1.6 255.255.255.252
+ANDHERI (config-if)# no shutdown ANDHERI (config-if)# exit ANDHERI (config)# interface Serial1/1
+ANDHERI (config-if)# ip address 172.16.1.1 255.255.255.0
+ANDHERI (config-if)# no shutdown
+SanJo ANDHERI se1(config-if)# end
+
+Router R3 (hostname BORIVALI)
+BORIVALI (config)# interface Loopback0
+BORIVALI (config-if)# ip address 172.16.32.1 255.255.255.0
+BORIVALI (config-if)# exit
+BORIVALI (config)# interface Serial1/0
+BORIVALI (config-if)# ip address 192.168.1.2 255.255.255.252
+BORIVALI (config-if)# no shutdown BORIVALI (config-if)# exit BORIVALI (config)# interface Serial1/1
+BORIVALI (config-if)# ip address 172.16.1.2 255.255.255.0
+BORIVALI (config-if)# no shutdown
+BORIVALI (config-if)# end
+
+ANDHERI(config)# router eigrp 1
+ANDHERI (config-router)# network 172.16.0.0
+BORIVALI(config)# router eigrp 1
+BORIVALI(config-router)# network 172.16.0.0
+ANDHERI(config)# router bgp 64512
+ANDHERI (config-router)# neighbor 172.16.32.1 remote-as 64512
+ANDHERI (config-router)# neighbor 172.16.32.1 update-source lo0
+BORIVALI(config-router)# neighbor 172.16.64.1 remote-as 64512
+BORIVALI (config-router)# neighbor 172.16.64.1 update-source lo0
+
+ISP(config-router)# neighbor 192.168.1.6 remote-as 64512
+ISP(config-router)# neighbor 192.168.1.2 remote-as 64512
+ISP(config-router)# network 192.168.100.0
+
+Configure ANDHERI as an EBGP peer to ISP. SanJose1(config)# router bgp 64512
+ANDHERI (config-router)# neighbor 192.168.1.5 remote-as 200
+ANDHERI (config-router)# network 172.16.0.0
+ANDHERI # show ip bgp neighbors
+
+BORIVALI(config)# ip route 172.16.0.0 255.255.0.0 null0
+BORIVALI (config)# router bgp 64512
+BORIVALI (config-router)# neighbor 192.168.1.1 remote-as 200
+BORIVALI (config-router)# network 172.16.0.0
+BORIVALI# show ip bgp summary
+ISP# clear ip bgp *
+ISP# ping 172.16.64.1
+ISP# ping 172.16.1.1
+ISP# ping 172.16.32.1
+ISP# ping 172.16.1.2
+ISP# show ip bgp
+ISP# ping 172.16.1.1 source 192.168.100.1
+ISP# ping 172.16.32.1 source 192.168.100.1
+ISP# ping 172.16.1.2 source 192.168.100.1
+ISP# ping 172.16.64.1 source 192.168.100.1
+ISP(config-router)# network 192.168.1.0 mask 255.255.255.252
+ISP(config-router)# network 192.168.1.4 mask 255.255.255.252
+ISP# show ip bgp
+BORIVALI# show ip route
+ISP(config)# router bgp 200
+ISP(config-router)# no network 192.168.1.0 mask 255.255.255.252
+ISP(config-router)# no network 192.168.1.4 mask 255.255.255.252
+ISP(config-router)# exit ISP(config)# interface serial 0/0/1 ISP(config-if)# shutdown
+show ip routeBORIVALI# show ip bgp
+
+BORIVALI# show ip route
+ANDHERI(config)# router bgp 64512
+ANDHERI(config-router)# neighbor 172.16.32.1 next-hop-self
+BORIVALI(config)# router bgp 64512
+BORIVALI(config-router)# neighbor 172.16.64.1 next-hop-self
+Reset BGP operation on either router with the clear ip bgp * command ANDHERI# clear ip bgp *
+BORIVALI# clear ip bgp *
+
+BORIVALI# show ip bgp
+BORIVALI# show ip route
+ISP(config)# interface serial 0/0/1
+ISP(config-if)# no shutdown
+BORIVALI# show ip route
+
+ANDHERI(config)# route-map PRIMARY_T1_IN permit 10 ANDHERI(config-route-map)# set local-preference 150 SanJose1(config-route-map)# exit
+ANDHERI(config)# router bgp 64512
+ANDHERI (config-router)# neighbor 192.168.1.5 route-map PRIMARY_T1_IN in
+
+BORIVALI(config)# route-map SECONDARY_T1_IN permit 10 BORIVALI (config-route-map)# set local-preference 125 SanJose1(config-route-map)# exit
+BORIVALI (config)# router bgp 64512
+BORIVALI (config-router)# neighbor 192.168.1.1 route-map SECONDARY_T1_IN in
+ANDHERI # clear ip bgp * soft
+BORIVALI# clear ip bgp * soft
+ANDHERI# show ip bgp
+BORIVALI# show ip bgp
+ISP# show ip bgp
+ISP# show ip route
+ANDHERI (config)#route-map PRIMARY_T1_MED_OUT permit 10
+ANDHERI (config-route-map)#set Metric 50 ANDHERI (config-route-map)#exit ANDHERI (config)#router bgp 64512
+ANDHERI (config-router)#neighbor 192.168.1.5 route-map PRIMARY_T1_MED_OUT out
+BORIVALI(config)#route-map SECONDARY_T1_MED_OUT permit 10
+BORIVALI (config-route-map)#set Metric 75 SanJose2(config-route-map)#exit BORIVALI (config)#router bgp 64512
+BORIVALI (config-router)#neighbor 192.168.1.1 route-map SECONDARY_T1_MED_OUT out
+ANDHERI # clear ip bgp * soft
+BORIVALI # clear ip bgp * soft
+BORIVALI# show ip bgp
+ISP(config)# router bgp 200
+ISP(config-router)# neighbor 192.168.1.6 default-originate
+ISP(config-router)# neighbor 192.168.1.2 default-originate
+ISP(config-router)# exit
+ISP(config)# interface loopback 10
+ISP(config-if)# ip address 10.0.0.1 255.255.255.0
+ANDHERI# show ip route
+BORIVALI# show ip route
+BORIVALI# show ip bgp
+BORIVALI# traceroute 10.0.0.1
+ISP(config)# interface serial 0/0/0
+ISP(config-if)# shutdown
+BORIVALI# show ip route
+BORIVALI# show ip route
+ANDHERI# trace 10.0.0.1
+
+
+
+
+Practical 4
+Aim: Secure the Management Plane. 
+
+Router R1
+interface Loopback 0
+ip address 192.168.1.1 255.255.255.0
+
+exit
+interface Serial0/0/0
+ip address 10.1.1.1 255.255.255.252
+no shutdown exit
+end
+
+Router R2
+interface Serial0/0/0
+ip address 10.1.1.2 255.255.255.252
+no shutdown exit
+interface Serial0/0/1
+ip address 10.2.2.1 255.255.255.252
+no shutdown exit
+end
+
+Router R3
+interface Loopback0
+ip address 192.168.3.1 255.255.255.0
+exit
+interface Serial0/0/1
+ip address 10.2.2.2 255.255.255.252
+no shutdown exit
+end
+R1(config)# ip route 0.0.0.0 0.0.0.0 10.1.1.2
+R3(config)# ip route 0.0.0.0 0.0.0.0 10.2.2.1
+R2(config)# ip route 192.168.1.0 255.255.255.0 10.1.1.1
+R2(config)# ip route 192.168.3.0 255.255.255.0 10.2.2.2
+
+foreach address { 192.168.1.1
+10.1.1.1
+10.1.1.2
+10.2.2.1
+10.2.2.2
+192.168.3.1
+} { ping $address }
+R1# tclsh
+R1(tcl)#foreach address {
++>(tcl)#192.168.1.1
++>(tcl)#10.1.1.1
++>(tcl)#10.1.1.2
++>(tcl)#10.2.2.1
++>(tcl)#10.2.2.2
++>(tcl)#192.168.3.1
++>(tcl)#} { ping $address } Type escape sequence to abort.
+R1(config)# security passwords min-length 10
+
+R1(config)# line console 0
+R1(config-line)# password ciscoconpass R1(config-line)# exec-timeout 5 0 R1(config-line)# login
+R1(config-line)# logging synchronous
+R1(config-line)# exit
+Configure the password on the vty lines for router R1. R1(config)# line vty 0 4
+R1(config-line)# password ciscovtypass
+R1(config-line)# exec-timeout 5 0
+R1(config-line)# login
+R1(config-line)# exit
+R1(config)# line aux 0 R1(config-line)# no exec R1(config-line)# end
+R1(config) # service password-encryption
+R1(config)# banner motd $Unauthorized access strictly prohibited!$
+R1(config)# exit
+
+R1(config)# username JR-ADMIN secret class12345
+R1(config)# username ADMIN secret class54321
+Set the console line to use the locally defined login accounts. R1(config)# line console 0
+R1(config-line)# login local
+R1(config-line)# exit
+Set the vty lines to use the locally defined login accounts. R1(config)# line vty 0 4
+R1(config-line)# login local
+R1(config-line)# end
+R1# telnet 10.2.2.2
+R1(config-radius-server)# address ipv4 192.168.1.101 R1(config-radius-server)# key RADIUS-1-pa55w0rd R1(config-radius-server)# exit
+R1(config)# radius server RADIUS-2
+R1(config-radius-server)# address ipv4 192.168.1.102 R1(config-radius-server)# key RADIUS-2-pa55w0rd R1(config-radius-server)# exit
+R1(config-sg-radius)# exit
+R1(config)# aaa authentication login default group RADIUS-GROUP local
+R1(config)# aaa authentication login TELNET-LOGIN group RADIUS-GROUP local-case
+R1(config)# line vty 0 4
+R1(config-line)# login authentication TELNET-LOGIN
+
+R1(config-line)# exit
+
+R1# telnet 10.2.2.2
+R1(config)# ip domain-name ccnasecurity.com
+R1(config)# crypto key generate rsa general-keys modulus 1024
+
+Configure SSH version 2 on R1. R1(config)# ip ssh version 2 R1(config)#
+Configure the vty lines to use only SSH connections. R1(config)# line vty 0 4
+R1(config-line)# transport input ssh
+R1(config-line)# end
+
+R1# ssh -l ADMIN 10.2.2.2
+Password:
+Unauthorized access strictly prohibited! R3>
+R3> en
+Password:
+R3#
+Device Configurations Router R1
+
+service password-encryption hostname R1
+security passwords min-length 10
+enable secret 5 $1$t6eK$FZ.JdmMLj8QSgNkpChyZz. aaa new-model
+aaa group server radius RADIUS-GROUP server name RADIUS-1
+server name RADIUS-2
+aaa authentication login default group RADIUS-GROUP local
+aaa authentication login TELNET-LOGIN group RADIUS-GROUP local-case ip domain name ccnasecurity.com
+username JR-ADMIN secret 5 $1$0u0q$lwimCZIAuQtV4C1ezXL1S0 username ADMIN secret 5 $1$NSVD$/YjzB7Auyes1sAt4qMfpd.
+ip ssh version 2 interface Loopback0 description R1 LAN
+ip address 192.168.1.1 255.255.255.0
+interface Serial0/0/0 description R1 --> R2
+ip address 10.1.1.1 255.255.255.252
+no fair-queue
+ip route 0.0.0.0 0.0.0.0 10.1.1.2
+radius server RADIUS-1
+address ipv4 192.168.1.101 auth-port 1645 acct-port 1646
+key 7 107C283D2C2221465D493A2A717D24653017
+radius server RADIUS-2
+address ipv4 192.168.1.102 auth-port 1645 acct-port 1646
+key 7 03367A2F2F3A12011C44090442471C5C162E
+banner motd ^CUnauthorized access strictly prohibited!^C
+
+line con 0
+exec-timeout 5 0
+
+password 7 070C285F4D061A0A19020A1F17
+logging synchronous line aux 0
+no exec
+password 7 060506324F411F0D1C0713181F
+login authentication TELNET-LOGIN transport input ssh
+end
+Router R2
+hostname R2
+enable secret 5 $1$DJS7$xvJDW87zLs8pSJDFUlCPB1 interface Serial0/0/0
+ip address 10.1.1.2 255.255.255.252
+no fair-queue
+interface Serial0/0/1
+ip address 10.2.2.1 255.255.255.252
+clock rate 128000
+ip route 192.168.1.0 255.255.255.0 10.1.1.1
+ip route 192.168.3.0 255.255.255.0 10.2.2.2
+line con 0
+exec-timeout 0 0 logging synchronous
+line vty 0 4 password cisco login
+end
+Router R3
+service password-encryption
+hostname R3
+security passwords min-length 10
+enable secret 5 $1$5OY4$4J6VFlvGNKjwQ8XtajgUk1 aaa new-model
+aaa group server radius RADIUS-GROUP server name RADIUS-1
+server name RADIUS-2
+aaa authentication login default group RADIUS-GROUP local
+aaa authentication login TELNET-LOGIN group RADIUS-GROUP local-case ip domain name ccnasecurity.com
+
+username JR-ADMIN secret 5 $1$b4m1$RVmjL9S3gxKh1xr8qzNqr/ username ADMIN secret 5 $1$zGV7$pVgSEbinvXQ7f7uyxeKBj
+ip ssh version 2
+
+interface Loopback0 description R3 LAN
+ip address 192.168.3.1 255.255.255.0
+
+interface Serial0/0/1 description R3 --> R2
+ip address 10.2.2.2 255.255.255.252
+
+ip route 0.0.0.0 0.0.0.0 10.2.2.1
+
+radius server RADIUS-1
+address ipv4 192.168.1.101 auth-port 1645 acct-port 1646
+key 7 01212720723E354270015E084C5000421908
+radius server RADIUS-2
+address ipv4 192.168.1.102 auth-port 1645 acct-port 1646
+
+key 7 003632222D6E384B5D6C5C4F5C4C1247000F
+banner motd ^CUnauthorized access strictly prohibited!^C
+line con 0
+exec-timeout 5 0
+password 7 104D000A0618110402142B3837
+logging synchronous
+line aux 0 no exec
+line vty 0 4
+exec-timeout 5 0
+password 7 070C285F4D060F110E020A1F17
+login authentication TELNET-LOGIN transport input ssh
+end

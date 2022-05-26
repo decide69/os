@@ -1,0 +1,106 @@
+Practical 5 
+Aim: Configure and Verify Path Control Using PBR
+
+Router R1
+interface Lo1
+ip address 192.168.1.1 255.255.255.0
+nterface Serial1/0
+ip address 172.16.12.1 255.255.255.248
+no shutdown
+interface Serial1/1
+ip address 172.16.13.1 255.255.255.248
+no shutdown End
+Router R2
+interface Lo2
+ip address 192.168.2.1 255.255.255.0
+interface Serial1/0
+ip address 172.16.12.2 255.255.255.248
+no shutdown
+interface Serial1/1
+ip address 172.16.23.2 255.255.255.248
+no shutdown End
+
+
+Router R3
+interface Lo3
+ip address 192.168.3.1 255.255.255.0
+interface Serial1/0
+ip address 172.16.13.3 255.255.255.248
+no shutdown interface Serial1/1
+ip address 172.16.23.3 255.255.255.248
+no shutdown interface Serial1/2
+ip address 172.16.34.3 255.255.255.248
+no shutdown End
+
+
+Router R4
+interface Lo4
+ip address 192.168.4.1 255.255.255.128
+interface Lo5
+ip address 192.168.4.129 255.255.255.128
+interface Serial1/0
+ip address 172.16.34.4 255.255.255.248
+no shutdown End
+
+R3# show ip interface brief
+R3# show protocols
+R3# show interfaces description
+
+Router R1
+router eigrp 1
+network 192.168.1.0
+network 172.16.12.0 0.0.0.7
+network 172.16.13.0 0.0.0.7
+no auto-summary
+Router R2
+router eigrp 1
+network 192.168.2.0
+network 172.16.12.0 0.0.0.7
+network 172.16.23.0 0.0.0.7
+no auto-summary
+
+Router R3
+router eigrp 1
+network 192.168.3.0
+network 172.16.13.0 0.0.0.7
+network 172.16.23.0 0.0.0.7
+network 172.16.34.0 0.0.0.7
+no auto-summary
+
+Router R4
+router eigrp 1
+network 192.168.4.0
+network 172.16.34.0 0.0.0.7
+no auto-summary
+
+R1# show ip eigrp neighbors
+R2# show ip eigrp neighbors
+R3# show ip eigrp neighbors
+R4# show ip eigrp neighbors
+R1# tclsh
+R1# show ip route
+R4# traceroute 192.168.1.1 source 192.168.4.1
+R4# traceroute 192.168.1.1 source 192.168.4.129
+R3# show ip route
+R3#
+ff.   On R3, use the show interfaces serial 1/0
+R3# show interfaces serial1/0
+R3# show ip eigrp Topology 192.168.1.0
+R3(config)# ip access-list standard PBR-ACL
+
+R3(config-std-nacl)# remark ACL matches R4 LAN B traffic R3(config-std-nacl)# permit 192.168.4.128 0.0.0.127 R3(config-std-nacl)# exit
+R3(config)#
+Create a route map called R3-to-R1 that matches PBR-ACL and sets the next-hop interface to the R1 serial 0/0/1 interface.
+R3(config)# route-map R3-to-R1 permit
+R3(config-route-map)# description RM to forward LAN B traffic to R1
+R3(config-route-map)# match ip address PBR-ACL R3(config-route-map)# set ip next-hop 172.16.13.1 R3(config-route-map)# exit
+R3(config)# interface s0/1/0
+R3(config-if)# ip policy route-map R3-to-R1
+R3(config-if)# end
+R3# show route-map
+R3# conf t
+R3# debug ip policy ?
+R3# debug ip policy 1
+R4# traceroute 192.168.1.1 source 192.168.4.1
+R4# traceroute 192.168.1.1 source 192.168.4.129
+R3# show route-map
